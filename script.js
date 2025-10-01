@@ -1,5 +1,4 @@
 /* script.js — gameplay, shops, audio, particles, save/load for dominating-rps */
-const $ = id => document.getElementById(id);
 const STORAGE_KEY = 'dominating_rps_save_v1';
 let musicOn = true;
 let state = {
@@ -39,12 +38,13 @@ function startBgMusic(){
 function stopBgMusic(){ try{ if(bgOsc){ bgOsc.stop(); bgOsc.disconnect(); bgGain.disconnect(); bgOsc=null; bgGain=null; } }catch(e){} }
 function toggleMusic(){ musicOn = !musicOn; if(musicOn) startBgMusic(); else stopBgMusic(); $('musicBtn').innerText = musicOn? 'Music: On':'Music: Off'; save(); }
 
-// Canvas FX
-const canvas = $('fxCanvas'); const ctx = canvas.getContext('2d'); let particles=[];
-function resizeCanvas(){ canvas.width = innerWidth; canvas.height = innerHeight; }
-window.addEventListener('resize', resizeCanvas); resizeCanvas();
+// Canvas FX (deferred init)
+let canvas = null; let ctx = null; let particles = [];
+function resizeCanvas(){ if(!canvas) return; canvas.width = innerWidth; canvas.height = innerHeight; }
+ canvas.width = innerWidth; canvas.height = innerHeight; }
+window.addEventListener('resize', ()=> resizeCanvas());
 function spawnParticles(x,y,color,count=18){ for(let i=0;i<count;i++){ particles.push({x,y,dx:(Math.random()-0.5)*6,dy:(Math.random()-0.9)*6,life:60+Math.random()*30,ttl:60+Math.random()*30,color}); } }
-function fxLoop(){ ctx.clearRect(0,0,canvas.width,canvas.height); for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.x+=p.dx; p.y+=p.dy; p.dy+=0.12; p.life--; const alpha = Math.max(0, p.life/ p.ttl); ctx.fillStyle = `rgba(${p.color.r},${p.color.g},${p.color.b},${alpha})`; ctx.beginPath(); ctx.arc(p.x,p.y,Math.max(1,alpha*4),0,Math.PI*2); ctx.fill(); if(p.life<=0) particles.splice(i,1); } requestAnimationFrame(fxLoop); } fxLoop();
+function fxLoop(){ ctx.clearRect(0,0,canvas.width,canvas.height); for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.x+=p.dx; p.y+=p.dy; p.dy+=0.12; p.life--; const alpha = Math.max(0, p.life/ p.ttl); ctx.fillStyle = `rgba(${p.color.r},${p.color.g},${p.color.b},${alpha})`; ctx.beginPath(); ctx.arc(p.x,p.y,Math.max(1,alpha*4),0,Math.PI*2); ctx.fill(); if(p.life<=0) particles.splice(i,1); } requestAnimationFrame(fxLoop); }
 function colorFromPalette(idx){ const pal=[[126,231,255],[202,167,255],[126,240,138],[255,160,120],[255,110,180]]; return pal[idx%pal.length]; }
 
 // utilities
@@ -141,6 +141,9 @@ function openImporter(){ const raw = prompt('Paste save JSON to import (this wil
 
 // init UI events
 document.addEventListener('DOMContentLoaded', ()=>{
+
+  // Initialize canvas after DOM ready
+  canvas = $('fxCanvas'); if(canvas){ ctx = canvas.getContext('2d'); resizeCanvas(); fxLoop(); }
   // buttons
   document.querySelectorAll('.choice-btn').forEach(btn=> btn.addEventListener('click', ()=> playerMove(btn.dataset.choice) ));
   $('musicBtn').addEventListener('click', toggleMusic);
@@ -166,5 +169,4 @@ document.addEventListener('DOMContentLoaded', ()=>{
 // switch shop tab
 function switchShop(tab){ $('shopCredits').style.display = tab==='credits' ? 'block':'none'; $('shopShards').style.display = tab==='shards' ? 'block':'none'; $('shopAch').style.display = tab==='ach' ? 'block':'none'; document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); if(tab==='credits') $('tabCredits').classList.add('active'); if(tab==='shards') $('tabShards').classList.add('active'); if(tab==='ach') $('tabAch').classList.add('active'); }
 
-// initial load call for safety
 load(); renderAll();
