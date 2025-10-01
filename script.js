@@ -2,39 +2,111 @@
 const STORAGE_KEY = 'dominating_rps_save_v1';
 let musicOn = true;
 let state = {
-  userScore: 0, cpuScore: 0, games: 0, credits: 0, shards: 0, streak: 0, level: 1, xp: 0, xpNext: 100,
-  powerUps: { doublePoints: 0, triplePoints: 0, shield: 0, extraLife: 0, instantWin: 0, predictor: 0, timeFreeze: 0, ultimateStreak: 0, criticalStrike: 0, rewind: 0 },
-  achievements: {}, daily: { lastClaim: null, streak: 0 }, leaderboard: [], lastRound: null, ownedShardShop: {}
+  userScore:0,cpuScore:0,games:0,credits:0,shards:0,streak:0,level:1,xp:0,xpNext:100,
+  powerUps:{doublePoints:0,triplePoints:0,shield:0,extraLife:0,instantWin:0,predictor:0,timeFreeze:0,ultimateStreak:0,criticalStrike:0,rewind:0},
+  achievements:{}, daily:{lastClaim:null,streak:0}, leaderboard:[], lastRound:null, ownedShardShop:{}
 };
 
-// --- Audio ---
+// Audio via WebAudio
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
-let audioCtx = null, bgOsc = null, bgGain = null;
-function ensureAudio() { if (!audioCtx) audioCtx = new AudioCtx(); }
-function playSfx(type) {
-  try {
+let audioCtx=null, bgOsc=null, bgGain=null;
+function ensureAudio(){ if(!audioCtx) audioCtx = new AudioCtx(); }
+function playSfx(type){
+  try{
     ensureAudio();
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
+    const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
     o.connect(g); g.connect(audioCtx.destination);
-    if (type === 'win') o.type = 'sine', o.frequency.value = 880;
-    else if (type === 'lose') o.type = 'sawtooth', o.frequency.value = 220;
-    else if (type === 'click') o.type = 'triangle', o.frequency.value = 440;
-    else if (type === 'level') o.type = 'sine', o.frequency.value = 1200;
+    if(type==='win'){ o.type='sine'; o.frequency.value=880; }
+    else if(type==='lose'){ o.type='sawtooth'; o.frequency.value=220; }
+    else if(type==='click'){ o.type='triangle'; o.frequency.value=440; }
+    else if(type==='level'){ o.type='sine'; o.frequency.value=1200; }
     g.gain.value = 0.0001; o.start();
-    g.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.22);
-    setTimeout(() => { o.stop(); o.disconnect(); g.disconnect(); }, 250);
-  } catch (e) { /* audio blocked */ }
+    g.gain.exponentialRampToValueAtTime(0.12,audioCtx.currentTime+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.22);
+    setTimeout(()=>{ o.stop(); o.disconnect(); g.disconnect(); },250);
+  }catch(e){}
 }
-function startBgMusic() {
-  try {
+function startBgMusic(){
+  try{
     ensureAudio();
-    if (bgOsc) return;
-    bgOsc = audioCtx.createOscillator(); bgOsc.type = 'sine'; bgOsc.frequency.value = 110;
+    if(bgOsc) return;
+    bgOsc = audioCtx.createOscillator(); bgOsc.type='sine'; bgOsc.frequency.value=110;
     bgGain = audioCtx.createGain(); bgGain.gain.value = 0.02;
     bgOsc.connect(bgGain); bgGain.connect(audioCtx.destination); bgOsc.start();
-  } catch (e) { }
+  }catch(e){}
+}
+function stopBgMusic(){ try{ if(bgOsc){ bgOsc.stop(); bgOsc.disconnect(); bgGain.disconnect(); bgOsc=null; bgGain=null; } }catch(e){} }
+function toggleMusic(){ musicOn = !musicOn; if(musicOn) startBgMusic(); else stopBgMusic(); $('musicBtn').innerText = musicOn? 'Music: On':'Music: Off'; save(); }
+
+// Canvas FX
+let fxCanvas = null; let ctx = null; let particles = [];
+function resizeCanvas(){ if(!fxCanvas) return; fxCanvas.width = innerWidth; fxCanvas.height = innerHeight; }
+function spawnParticles(x,y,color,count=18){ for(let i=0;i<count;i++){ particles.push({x,y,dx:(Math.random()-0.5)*6,dy:(Math.random()-0.9)*6,life:60+Math.random()*30,ttl:60+Math.random()*30,color}); } }
+function fxLoop(){ if(!ctx) return; ctx.clearRect(0,0,fxCanvas.width,fxCanvas.height); for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.x+=p.dx; p.y+=p.dy; p.dy+=0.12; p.life--; const alpha = Math.max(0, p.life/p.ttl); ctx.fillStyle = `rgba(${p.color.r},${p.color.g},${p.color.b},${alpha})`; ctx.beginPath(); ctx.arc(p.x,p.y,Math.max(1,alpha*4),0,Math.PI*2); ctx.fill(); if(p.life<=0) particles.splice(i,1); } requestAnimationFrame(fxLoop); }
+function colorFromPalette(idx){ const pal=[[126,231,255],[202,167,255],[126,240,138],[255,160,120],[255,110,180]]; return pal[idx%pal.length]; }
+
+// utilities
+const $ = id=>document.getElementById(id);
+function safeInt(n){ return Math.max(0, Math.floor(Number(n)||0)); }
+
+// load/save
+function load(){ try{ const raw = localStorage.getItem(STORAGE_KEY); if(raw){ const parsed = JSON.parse(raw); state = Object.assign({}, state, parsed); state.powerUps = Object.assign({}, state.powerUps, parsed.powerUps || {}); state.achievements = Object.assign({}, state.achievements || {}); state.leaderboard = parsed.leaderboard || state.leaderboard; } }catch(e){ console.error('load err',e); } renderAll(); }
+function save(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){ console.error('save err',e); } }
+
+// [Game logic, shops, achievements, daily rewards, etc.] 
+// -- Keep your existing functions like playerMove(), applyWin(), renderShops(), grantAchievement(), claimDaily(), renderAll(), rewindLast() --
+// -- No changes needed here, just make sure fxCanvas variable is not re-declared --
+
+// Splash / Start button handling
+const SPLASH_TIPS = [
+  "💡 Tip: Use Predictor to nudge the CPU into losing.",
+  "🔥 Tip: Save Prismatic Shards for premium upgrades.",
+  "🎯 Tip: Critical Strike doubles points on your next win.",
+  "🛡️ Tip: Shield blocks one loss — keep it for risky rounds.",
+  "⏳ Tip: Time Freeze rerolls the CPU if you would lose."
+];
+let tipInterval = null;
+function startTipCycle(){
+  const tipEl = $('tip'); if(!tipEl) return;
+  let i = 0; tipEl.innerText = SPLASH_TIPS[0];
+  tipInterval = setInterval(()=>{ i=(i+1)%SPLASH_TIPS.length; tipEl.innerText=SPLASH_TIPS[i]; },1200);
+}
+function stopTipCycle(){ if(tipInterval){ clearInterval(tipInterval); tipInterval=null; } }
+function startGameFromSplash(){
+  const splash = $('splash'); const root = $('gameRoot');
+  if(splash) splash.style.display='none';
+  if(root) root.style.display='grid';
+  stopTipCycle();
+  try{ ensureAudio(); if(musicOn) startBgMusic(); $('musicBtn').innerText='Music: On'; }catch(e){}
+  renderShops(); renderAchievements(); renderDaily(); renderLeaderboard(); renderAll();
+}
+
+// DOMContentLoaded init
+document.addEventListener('DOMContentLoaded', ()=>{
+  // Canvas
+  fxCanvas = $('fxCanvas'); if(fxCanvas){ ctx=fxCanvas.getContext('2d'); resizeCanvas(); fxLoop(); }
+  window.addEventListener('resize', resizeCanvas);
+
+  // Buttons
+  document.querySelectorAll('.choice-btn').forEach(btn=> btn.addEventListener('click', ()=> playerMove(btn.dataset.choice) ));
+  $('musicBtn')?.addEventListener('click', toggleMusic);
+  $('exportBtn')?.addEventListener('click', openExporter);
+  $('importBtn')?.addEventListener('click', openImporter);
+  $('claimDaily')?.addEventListener('click', claimDaily);
+  $('submitScore')?.addEventListener('click', promptLeaderboardName);
+  $('tabCredits')?.addEventListener('click', ()=> switchShop('credits'));
+  $('tabShards')?.addEventListener('click', ()=> switchShop('shards'));
+  $('tabAch')?.addEventListener('click', ()=> switchShop('ach'));
+
+  document.addEventListener('keydown', e=>{ if(e.key==='1') playerMove('rock'); if(e.key==='2') playerMove('paper'); if(e.key==='3') playerMove('scissors'); if(e.key==='m') toggleMusic(); if(e.key==='r') rewindLast(); });
+
+  load();
+  startTipCycle();
+
+  const startBtn = $('startBtn');
+  if(startBtn) startBtn.addEventListener('click', ()=> startGameFromSplash());
+  setTimeout(()=>{ const splash=$('splash'); if(splash && splash.style.display!=='none') startGameFromSplash(); },4000);
+});  } catch (e) { }
 }
 function stopBgMusic() { try { if (bgOsc) { bgOsc.stop(); bgOsc.disconnect(); bgGain.disconnect(); bgOsc = null; bgGain = null; } } catch (e) { } }
 function toggleMusic() { musicOn = !musicOn; if (musicOn) startBgMusic(); else stopBgMusic(); $('musicBtn')?.innerText = musicOn ? 'Music: On' : 'Music: Off'; save(); }
