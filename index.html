@@ -47,7 +47,10 @@
         <div class="title" id="resultTitle">Make a move</div>
         <div class="sub" id="resultSub">Streak: <span id="streak">0</span> • Level: <span id="level">1</span></div>
         <div class="xpbar"><div id="xpfill" class="xpfill" style="width:0%"></div></div>
-        <div style="display:flex;justify-content:space-between;margin-top:8px;color:var(--muted);font-size:13px"><div>XP: <span id="xp">0</span></div><div>Next: <span id="xpNext">100</span></div></div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;color:var(--muted);font-size:13px">
+          <div>XP: <span id="xp">0</span></div>
+          <div>Next: <span id="xpNext">100</span></div>
+        </div>
         <div class="controls">
           <button class="btn-ghost" id="musicBtn">Music: Off</button>
           <button class="btn-ghost" id="exportBtn">Export Save</button>
@@ -85,7 +88,10 @@
     </div>
 
     <div style="margin-top:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center"><div style="color:var(--muted);font-size:13px">Daily Reward</div><div><button id="claimDaily" class="claimBtn">Claim</button></div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="color:var(--muted);font-size:13px">Daily Reward</div>
+        <div><button id="claimDaily" class="claimBtn">Claim</button></div>
+      </div>
       <div class="daily" style="margin-top:8px">
         <div style="color:var(--muted);font-size:13px">Daily Streak: <span id="dailyStreak">0</span></div>
         <div class="days" id="dailyDays"></div>
@@ -93,10 +99,12 @@
     </div>
 
     <div style="margin-top:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center"><div style="color:var(--muted);font-size:13px">Leaderboard</div><div><button id="submitScore" class="btn-ghost">Submit Score</button></div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="color:var(--muted);font-size:13px">Leaderboard</div>
+        <div><button id="submitScore" class="btn-ghost">Submit Score</button></div>
+      </div>
       <div class="leaderboard" id="leaderboard"></div>
     </div>
-
   </aside>
 
   <footer>Dominating RPS — Save/Export, Audio Start via Start button, Mobile-ready</footer>
@@ -104,4 +112,4 @@
 
 <script src="script.js"></script>
 </body>
-</html>
+  </html>
