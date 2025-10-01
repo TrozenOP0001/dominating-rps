@@ -1,40 +1,137 @@
 // --- STATE & STORAGE ---
-const STORAGE_KEY = 'dominating_rps_save_v2';
+const STORAGE_KEY = 'dominating_rps_save_v3';
 let state = {
-  userScore:0,cpuScore:0,games:0,credits:0,shards:0,streak:0,level:1,xp:0,xpNext:100,
-  powerUps:{doublePoints:0,triplePoints:0,shield:0,extraLife:0,instantWin:0,predictor:0,timeFreeze:0,ultimateStreak:0,criticalStrike:0,rewind:0},
-  achievements:{}, daily:{lastClaim:null,streak:0}, leaderboard:[], lastRound:null, ownedShardShop:{}
+  userScore: 0,
+  cpuScore: 0,
+  games: 0,
+  credits: 0,
+  shards: 0,
+  streak: 0,
+  level: 1,
+  xp: 0,
+  xpNext: 100,
+  powerUps: {},
+  achievements: {},
+  daily: { lastClaim: null, streak: 0 },
+  leaderboard: [],
+  lastRound: null
 };
-let musicOn = true;
+
+let musicOn = false;
 
 // --- AUDIO ---
-const AudioCtx = window.AudioContext || window.webkitAudioContext;
-let audioCtx=null, bgOsc=null, bgGain=null;
-function ensureAudio(){ if(!audioCtx) audioCtx = new AudioCtx(); }
-function playSfx(type){
-  try{
+let audioCtx = null;
+function ensureAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+function playSfx(type) {
+  try {
     ensureAudio();
-    const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
     o.connect(g); g.connect(audioCtx.destination);
-    if(type==='win'){ o.type='sine'; o.frequency.value=880; }
-    else if(type==='lose'){ o.type='sawtooth'; o.frequency.value=220; }
-    else if(type==='click'){ o.type='triangle'; o.frequency.value=440; }
-    else if(type==='level'){ o.type='sine'; o.frequency.value=1200; }
-    g.gain.value = 0.0001; o.start();
-    g.gain.exponentialRampToValueAtTime(0.12,audioCtx.currentTime+0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.22);
-    setTimeout(()=>{ o.stop(); o.disconnect(); g.disconnect(); },250);
-  }catch(e){}
+    if (type === 'win') o.frequency.value = 880;
+    if (type === 'lose') o.frequency.value = 220;
+    if (type === 'click') o.frequency.value = 440;
+    g.gain.value = 0.0001;
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.22);
+    setTimeout(() => { o.stop(); o.disconnect(); g.disconnect(); }, 250);
+  } catch (e) { }
 }
-function startBgMusic(){ try{ ensureAudio(); if(bgOsc) return; bgOsc=audioCtx.createOscillator(); bgOsc.type='sine'; bgOsc.frequency.value=110; bgGain=audioCtx.createGain(); bgGain.gain.value=0.02; bgOsc.connect(bgGain); bgGain.connect(audioCtx.destination); bgOsc.start(); }catch(e){} }
-function stopBgMusic(){ try{ if(bgOsc){ bgOsc.stop(); bgOsc.disconnect(); bgGain.disconnect(); bgOsc=null; bgGain=null; } }catch(e){} }
-function toggleMusic(){ musicOn = !musicOn; if(musicOn) startBgMusic(); else stopBgMusic(); document.getElementById('musicBtn').innerText = musicOn?'Music: On':'Music: Off'; save(); }
 
 // --- CANVAS FX ---
-let canvas=null, ctx=null, particles=[];
-function resizeCanvas(){ if(!canvas) return; canvas.width=innerWidth; canvas.height=innerHeight; }
-function spawnParticles(x,y,color,count=18){ for(let i=0;i<count;i++){ particles.push({x,y,dx:(Math.random()-0.5)*6,dy:(Math.random()-0.9)*6,life:60+Math.random()*30,ttl:60+Math.random()*30,color}); } }
-function fxLoop(){ if(!ctx) return; ctx.clearRect(0,0,canvas.width,canvas.height); for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.x+=p.dx; p.y+=p.dy; p.dy+=0.12; p.life--; const alpha = Math.max(0,p.life/p.ttl); ctx.fillStyle=`rgba(${p.color.r},${p.color.g},${p.color.b},${alpha})`; ctx.beginPath(); ctx.arc(p.x,p.y,Math.max(1,alpha*4),0,Math.PI*2); ctx.fill(); if(p.life<=0) particles.splice(i,1); } requestAnimationFrame(fxLoop); }
+let canvas = null, ctx = null, particles = [];
+function resizeCanvas() { if (!canvas) return; canvas.width = innerWidth; canvas.height = innerHeight; }
+function spawnParticles(x, y, color, count = 18) {
+  for (let i = 0; i < count; i++) {
+    particles.push({ x, y, dx: (Math.random() - 0.5) * 6, dy: (Math.random() - 0.9) * 6, life: 60 + Math.random() * 30, ttl: 60 + Math.random() * 30, color });
+  }
+}
+function fxLoop() {
+  if (!ctx) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.dx; p.y += p.dy; p.dy += 0.12; p.life--;
+    const alpha = Math.max(0, p.life / p.ttl);
+    ctx.fillStyle = `rgba(${p.color.r},${p.color.g},${p.color.b},${alpha})`;
+    ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(1, alpha * 4), 0, Math.PI * 2); ctx.fill();
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+  requestAnimationFrame(fxLoop);
+}
+function colorFromPalette(idx) {
+  const pal = [[126, 231, 255], [202, 167, 255], [126, 240, 138], [255, 160, 120], [255, 110, 180]];
+  return { r: pal[idx % pal.length][0], g: pal[idx % pal.length][1], b: pal[idx % pal.length][2] };
+}
+
+// --- UTILITIES ---
+const $ = id => document.getElementById(id);
+
+// --- LOAD/SAVE ---
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function load() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) state = Object.assign(state, JSON.parse(raw));
+  renderAll();
+}
+
+// --- GAMEPLAY ---
+function randChoice() { return ['rock', 'paper', 'scissors'][Math.floor(Math.random() * 3)]; }
+function cmp(a, b) {
+  if (a === b) return 'tie';
+  if ((a === 'rock' && b === 'scissors') || (a === 'paper' && b === 'rock') || (a === 'scissors' && b === 'paper')) return 'win';
+  return 'lose';
+}
+
+function playRound(choice) {
+  playSfx('click');
+  const cpu = randChoice();
+  const result = cmp(choice, cpu);
+  if (result === 'win') { state.userScore++; spawnParticles(innerWidth / 2, innerHeight / 2, colorFromPalette(0), 20); playSfx('win'); }
+  else if (result === 'lose') { state.cpuScore++; spawnParticles(innerWidth / 2, innerHeight / 2, colorFromPalette(4), 15); playSfx('lose'); }
+  state.games++;
+  state.streak = (result === 'win') ? state.streak + 1 : 0;
+  state.lastRound = { user: choice, cpu, result, time: Date.now() };
+  renderAll();
+  save();
+}
+
+// --- BUTTONS ---
+function setupButtons() {
+  ['Rock', 'Paper', 'Scissors'].forEach(c => {
+    $(`btn${c}`).addEventListener('click', () => playRound(c.toLowerCase()));
+  });
+  $('startBtn').addEventListener('click', () => {
+    $('splash').style.display = 'none';
+    $('gameRoot').style.display = 'grid';
+    if (musicOn) playSfx('click');
+  });
+  $('musicBtn').addEventListener('click', () => { musicOn = !musicOn; $('musicBtn').innerText = musicOn ? 'Music: On' : 'Music: Off'; });
+}
+
+// --- RENDER ---
+function renderAll() {
+  $('userScore').innerText = state.userScore;
+  $('cpuScore').innerText = state.cpuScore;
+  $('games').innerText = state.games;
+  $('streak').innerText = state.streak;
+  $('level').innerText = state.level;
+  $('xp').innerText = state.xp;
+  $('xpNext').innerText = state.xpNext;
+  $('xpfill').style.width = Math.min(100, (state.xp / state.xpNext) * 100) + '%';
+}
+
+// --- INIT ---
+function init() {
+  canvas = $('fxCanvas'); ctx = canvas.getContext('2d'); resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+  fxLoop();
+  setupButtons();
+  load();
+}
+
+window.onload = init;function fxLoop(){ if(!ctx) return; ctx.clearRect(0,0,canvas.width,canvas.height); for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.x+=p.dx; p.y+=p.dy; p.dy+=0.12; p.life--; const alpha = Math.max(0,p.life/p.ttl); ctx.fillStyle=`rgba(${p.color.r},${p.color.g},${p.color.b},${alpha})`; ctx.beginPath(); ctx.arc(p.x,p.y,Math.max(1,alpha*4),0,Math.PI*2); ctx.fill(); if(p.life<=0) particles.splice(i,1); } requestAnimationFrame(fxLoop); }
 function colorFromPalette(idx){ const pal=[[126,231,255],[202,167,255],[126,240,138],[255,160,120],[255,110,180]]; return pal[idx%pal.length]; }
 
 // --- UTILITIES ---
