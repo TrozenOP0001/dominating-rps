@@ -1,0 +1,51 @@
+/* style.css — Tech Minimalist Futuristic (split from inlined version) */
+:root{
+  --bg:#02040a; --panel:#0b0f14; --muted:#9aa3ad; --accent:#7ee7ff; --accent-2:#caa7ff; --glass: rgba(255,255,255,0.03);
+  --success:#7ef08a; --danger:#ff7a7a; --maxWidth:1280px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;padding:28px;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  background:radial-gradient(800px 400px at 10% 10%, rgba(122,120,255,0.03), transparent), linear-gradient(180deg,#02040a 0%, #071018 100%);
+  color:#e6eef6;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;overflow:hidden
+}
+.shell{width:100%;max-width:var(--maxWidth);display:grid;grid-template-columns:1fr 420px;gap:18px}
+header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;padding:12px 6px}
+header h1{font-family: 'Russo One', sans-serif;font-size:20px;margin:0;color:var(--accent)}
+header .meta{color:var(--muted);font-size:13px}
+.panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:16px;border-radius:12px;border:1px solid var(--glass)}
+.game{padding:18px}
+.status{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.card{background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;border:1px solid var(--glass);min-width:110px;text-align:center}
+.card .big{font-size:20px;font-weight:800}
+.arena{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:14px}
+.choices{display:flex;gap:12px}
+.choice-btn{width:136px;height:136px;border-radius:16px;border:1px solid rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:pointer;background:linear-gradient(180deg, rgba(255,255,255,0.008), rgba(255,255,255,0.002));transition:transform .12s,box-shadow .12s}
+.choice-btn:hover{transform:translateY(-8px);box-shadow:0 14px 40px rgba(122,120,255,0.06)}
+.choice-btn .emoji{font-size:44px;margin-bottom:6px}
+.resultBox{flex:1;padding:18px;border-radius:12px;text-align:center;border:1px solid rgba(255,255,255,0.03);min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.resultBox .title{font-size:22px;font-weight:800;color:var(--accent)}
+.resultBox .sub{color:var(--muted);font-size:13px;margin-top:6px}
+.xpbar{height:12px;background:rgba(255,255,255,0.03);border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,0.02);width:100%;margin-top:12px}
+.xpfill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));width:0%}
+.right{display:flex;flex-direction:column;gap:12px}
+.tabs{display:flex;gap:8px;margin-bottom:8px}
+.tab{padding:8px 12px;border-radius:999px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.02);cursor:pointer}
+.tab.active{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#041017}
+.shop-list{display:flex;flex-direction:column;gap:10px;max-height:320px;overflow:auto;padding-right:6px}
+.shop-item{display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:10px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.02)}
+.shop-item button{background:linear-gradient(90deg,var(--accent),var(--accent-2));border:0;padding:8px 12px;border-radius:8px;color:#041017;font-weight:800;cursor:pointer}
+.ach-list{display:grid;grid-template-columns:1fr;gap:8px}
+.ach{padding:10px;border-radius:8px;background:rgba(255,255,255,0.01);display:flex;justify-content:space-between;align-items:center}
+.daily{display:flex;flex-direction:column;gap:8px}
+.daily .days{display:flex;gap:8px}
+.day{width:44px;height:44px;border-radius:8px;background:rgba(255,255,255,0.01);display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.02)}
+.leaderboard{max-height:200px;overflow:auto;padding-right:6px}
+.lb-row{display:flex;justify-content:space-between;padding:6px;border-bottom:1px solid rgba(255,255,255,0.02)}
+.controls{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:12px}
+.btn-ghost{background:transparent;border:1px solid var(--glass);padding:8px 12px;border-radius:8px;color:var(--muted);cursor:pointer}
+#fxCanvas{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:2}
+.claimBtn{background:linear-gradient(90deg,var(--accent),var(--accent-2));border:0;padding:6px 10px;border-radius:8px;cursor:pointer;color:#041017;font-weight:800}
+footer{grid-column:1/-1;color:var(--muted);font-size:13px;margin-top:8px}
+@media(max-width:1080px){.shell{grid-template-columns:1fr}.right{order:2}}
