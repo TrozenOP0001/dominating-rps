@@ -1,4 +1,5 @@
 /* script.js — gameplay, shops, audio, particles, save/load for dominating-rps */
+const $ = id => document.getElementById(id);
 const STORAGE_KEY = 'dominating_rps_save_v1';
 let musicOn = true;
 let state = {
