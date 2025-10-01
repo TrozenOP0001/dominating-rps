@@ -41,7 +41,7 @@ function toggleMusic() { musicOn = !musicOn; if (musicOn) startBgMusic(); else s
 
 // --- Canvas / FX ---
 let canvas = null, ctx = null, particles = [];
-function resizeCanvas() { if (!canvas) return; canvas.width = innerWidth; canvas.height = innerHeight; }
+function resizeCanvas() { if (!canvas) return; canvas.width = innerWidth; canvas.height = innerHeight;
 window.addEventListener('resize', () => resizeCanvas());
 function spawnParticles(x, y, color, count = 18) { for (let i = 0; i < count; i++) { particles.push({ x, y, dx: (Math.random() - 0.5) * 6, dy: (Math.random() - 0.9) * 6, life: 60 + Math.random() * 30, ttl: 60 + Math.random() * 30, color }); } }
 function fxLoop() {
