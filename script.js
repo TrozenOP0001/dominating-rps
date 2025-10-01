@@ -1,40 +1,77 @@
-// Full Deluxe RPS Game with FX Canvas
-
+// --- STATE & STORAGE ---
+const STORAGE_KEY = 'dominating_rps_save_v2';
 let state = {
-  userScore:0, cpuScore:0, games:0, credits:0, shards:0, streak:0,
-  level:1, xp:0, xpNext:100, achievements:{}, dailyStreak:0, lastDaily:0
+  userScore:0,cpuScore:0,games:0,credits:0,shards:0,streak:0,level:1,xp:0,xpNext:100,
+  powerUps:{doublePoints:0,triplePoints:0,shield:0,extraLife:0,instantWin:0,predictor:0,timeFreeze:0,ultimateStreak:0,criticalStrike:0,rewind:0},
+  achievements:{}, daily:{lastClaim:null,streak:0}, leaderboard:[], lastRound:null, ownedShardShop:{}
 };
+let musicOn = true;
 
-const musicAudio = new Audio();
-let musicOn=false;
+// --- AUDIO ---
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx=null, bgOsc=null, bgGain=null;
+function ensureAudio(){ if(!audioCtx) audioCtx = new AudioCtx(); }
+function playSfx(type){
+  try{
+    ensureAudio();
+    const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    if(type==='win'){ o.type='sine'; o.frequency.value=880; }
+    else if(type==='lose'){ o.type='sawtooth'; o.frequency.value=220; }
+    else if(type==='click'){ o.type='triangle'; o.frequency.value=440; }
+    else if(type==='level'){ o.type='sine'; o.frequency.value=1200; }
+    g.gain.value = 0.0001; o.start();
+    g.gain.exponentialRampToValueAtTime(0.12,audioCtx.currentTime+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.22);
+    setTimeout(()=>{ o.stop(); o.disconnect(); g.disconnect(); },250);
+  }catch(e){}
+}
+function startBgMusic(){ try{ ensureAudio(); if(bgOsc) return; bgOsc=audioCtx.createOscillator(); bgOsc.type='sine'; bgOsc.frequency.value=110; bgGain=audioCtx.createGain(); bgGain.gain.value=0.02; bgOsc.connect(bgGain); bgGain.connect(audioCtx.destination); bgOsc.start(); }catch(e){} }
+function stopBgMusic(){ try{ if(bgOsc){ bgOsc.stop(); bgOsc.disconnect(); bgGain.disconnect(); bgOsc=null; bgGain=null; } }catch(e){} }
+function toggleMusic(){ musicOn = !musicOn; if(musicOn) startBgMusic(); else stopBgMusic(); document.getElementById('musicBtn').innerText = musicOn?'Music: On':'Music: Off'; save(); }
 
-const splash=document.getElementById('splash');
-const startBtn=document.getElementById('startBtn');
-const gameRoot=document.getElementById('gameRoot');
-const resultTitle=document.getElementById('resultTitle');
-const resultSub=document.getElementById('resultSub');
-const xpFill=document.getElementById('xpfill');
-const walletCredits=document.getElementById('walletCredits');
-const walletShards=document.getElementById('walletShards');
-const displayLevel=document.getElementById('displayLevel');
+// --- CANVAS FX ---
+let canvas=null, ctx=null, particles=[];
+function resizeCanvas(){ if(!canvas) return; canvas.width=innerWidth; canvas.height=innerHeight; }
+function spawnParticles(x,y,color,count=18){ for(let i=0;i<count;i++){ particles.push({x,y,dx:(Math.random()-0.5)*6,dy:(Math.random()-0.9)*6,life:60+Math.random()*30,ttl:60+Math.random()*30,color}); } }
+function fxLoop(){ if(!ctx) return; ctx.clearRect(0,0,canvas.width,canvas.height); for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.x+=p.dx; p.y+=p.dy; p.dy+=0.12; p.life--; const alpha = Math.max(0,p.life/p.ttl); ctx.fillStyle=`rgba(${p.color.r},${p.color.g},${p.color.b},${alpha})`; ctx.beginPath(); ctx.arc(p.x,p.y,Math.max(1,alpha*4),0,Math.PI*2); ctx.fill(); if(p.life<=0) particles.splice(i,1); } requestAnimationFrame(fxLoop); }
+function colorFromPalette(idx){ const pal=[[126,231,255],[202,167,255],[126,240,138],[255,160,120],[255,110,180]]; return pal[idx%pal.length]; }
 
-const buttons=['btnRock','btnPaper','btnScissors'].map(id=>document.getElementById(id));
-const shopCredits=document.getElementById('shopCredits');
-const shopShards=document.getElementById('shopShards');
-const shopAch=document.getElementById('shopAch');
+// --- UTILITIES ---
+const $=id=>document.getElementById(id);
+function safeInt(n){ return Math.max(0,Math.floor(Number(n)||0)); }
 
-const tabs={
-  tabCredits:shopCredits,
-  tabShards:shopShards,
-  tabAch:shopAch
-};
+// --- LOAD/SAVE ---
+function load(){ try{ const raw=localStorage.getItem(STORAGE_KEY); if(raw){ const parsed=JSON.parse(raw); state=Object.assign({},state,parsed); state.powerUps=Object.assign({},state.powerUps,parsed.powerUps||{}); state.achievements=Object.assign({},state.achievements||{}); state.leaderboard=parsed.leaderboard||state.leaderboard; } }catch(e){ console.error(e); } renderAll(); }
+function save(){ try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }catch(e){ console.error(e); } }
 
-// --- Start Game ---
-startBtn.addEventListener('click',()=>{
-  splash.style.display='none';
-  gameRoot.style.display='grid';
-  if(musicOn) musicAudio.play();
-  renderShop();
+// --- GAMEPLAY ---
+function randChoice(){ return ['rock','paper','scissors'][Math.floor(Math.random()*3)]; }
+function cmp(a,b){ if(a===b) return 'tie'; if((a==='rock'&&b==='scissors')||(a==='paper'&&b==='rock')||(a==='scissors'&&b==='paper')) return 'win'; return 'lose'; }
+function losingTo(choice){ if(choice==='rock') return 'paper'; if(choice==='paper') return 'scissors'; return 'rock'; }
+
+function playRound(choice){
+  playSfx('click');
+  const cpu=randChoice();
+  let result=cmp(choice,cpu);
+  if(result==='win'){ state.userScore+=1; spawnParticles(innerWidth/2,innerHeight/2,colorFromPalette(0),20); playSfx('win'); }
+  else if(result==='lose'){ state.cpuScore+=1; spawnParticles(innerWidth/2,innerHeight/2,colorFromPalette(4),15); playSfx('lose'); }
+  state.games+=1; state.streak=result==='win'?state.streak+1:0; renderAll();
+  state.lastRound={user:choice,cpu,result,time:Date.now()};
+}
+
+// --- BUTTONS ---
+const btnRock=$('btnRock'); const btnPaper=$('btnPaper'); const btnScissors=$('btnScissors');
+const buttons=[btnRock,btnPaper,btnScissors];
+buttons.forEach(btn=>{ btn.addEventListener('click',()=>playRound(btn.dataset.choice)); });
+
+// --- RENDER ---
+function renderAll(){
+  $('userScore').innerText=state.userScore;
+  $('cpuScore').innerText=state.cpuScore;
+  $('games').innerText=state.games;
+  $('streak').innerText=state.streak;
+  $('level').innerText  renderShop();
   renderAchievements();
   initParticles();
   animateParticles();
