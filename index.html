@@ -9,7 +9,19 @@
 </head>
 <body>
 <canvas id="fxCanvas"></canvas>
-<div class="shell">
+
+<!-- Splash / Loading Screen -->
+<div id="splash" class="splash">
+  <div class="splash-card">
+    <h1>DOMINATING RPS</h1>
+    <div class="splash-sub">Initializing Futuristic Arcade…</div>
+    <div id="tip" class="splash-tip">Tip: Use predictor wisely.</div>
+    <button id="startBtn" class="start-btn">Start Game</button>
+    <div class="splash-small">Loading will finish in ~4 seconds</div>
+  </div>
+</div>
+
+<div class="shell" id="gameRoot" style="display:none">
   <header>
     <h1>DOMINATING RPS</h1>
     <div class="meta">Prismatic Shards • Credits • Achievements • Daily Rewards • Levels</div>
@@ -37,7 +49,7 @@
         <div class="xpbar"><div id="xpfill" class="xpfill" style="width:0%"></div></div>
         <div style="display:flex;justify-content:space-between;margin-top:8px;color:var(--muted);font-size:13px"><div>XP: <span id="xp">0</span></div><div>Next: <span id="xpNext">100</span></div></div>
         <div class="controls">
-          <button class="btn-ghost" id="musicBtn">Music: On</button>
+          <button class="btn-ghost" id="musicBtn">Music: Off</button>
           <button class="btn-ghost" id="exportBtn">Export Save</button>
           <button class="btn-ghost" id="importBtn">Import Save</button>
         </div>
@@ -88,7 +100,7 @@
 
   </aside>
 
-  <footer>Dominating RPS — Save/Export, Audio Autoplay, Mobile-ready instructions included</footer>
+  <footer>Dominating RPS — Save/Export, Audio Start via Start button, Mobile-ready</footer>
 </div>
 
 <script src="script.js"></script>

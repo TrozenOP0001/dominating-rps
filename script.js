@@ -170,3 +170,51 @@ document.addEventListener('DOMContentLoaded', ()=>{
 function switchShop(tab){ $('shopCredits').style.display = tab==='credits' ? 'block':'none'; $('shopShards').style.display = tab==='shards' ? 'block':'none'; $('shopAch').style.display = tab==='ach' ? 'block':'none'; document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); if(tab==='credits') $('tabCredits').classList.add('active'); if(tab==='shards') $('tabShards').classList.add('active'); if(tab==='ach') $('tabAch').classList.add('active'); }
 
 load(); renderAll();
+
+
+// --- Splash / Start button handling ---
+const SPLASH_TIPS = [
+  "💡 Tip: Use Predictor to nudge the CPU into losing.",
+  "🔥 Tip: Save Prismatic Shards for premium upgrades.",
+  "🎯 Tip: Critical Strike doubles points on your next win.",
+  "🛡️ Tip: Shield blocks one loss — keep it for risky rounds.",
+  "⏳ Tip: Time Freeze rerolls the CPU if you would lose."
+];
+
+let tipInterval = null;
+function startTipCycle(){
+  const tipEl = $('tip');
+  if(!tipEl) return;
+  let i = 0;
+  tipEl.innerText = SPLASH_TIPS[0];
+  tipInterval = setInterval(()=>{
+    i = (i+1) % SPLASH_TIPS.length;
+    tipEl.innerText = SPLASH_TIPS[i];
+  }, 1200);
+}
+function stopTipCycle(){ if(tipInterval){ clearInterval(tipInterval); tipInterval = null; } }
+
+function startGameFromSplash(){
+  // hide splash, show game root, init audio, and trigger initial rendering
+  const splash = $('splash'); const root = $('gameRoot');
+  if(splash) splash.style.display = 'none';
+  if(root) root.style.display = 'block';
+  stopTipCycle();
+  // enable audio and start background music
+  try{ ensureAudio(); startBgMusic(); musicOn = true; const mb = $('musicBtn'); if(mb) mb.innerText = 'Music: On'; }catch(e){ console.warn('audio start failed', e); }
+  // initial render and shop render in case not yet done
+  try{ renderShops(); renderAchievements(); renderDaily(); renderLeaderboard(); renderAll(); }catch(e){}
+}
+
+// attach start button after DOM ready
+document.addEventListener('DOMContentLoaded', ()=>{
+  startTipCycle();
+  const startBtn = $('startBtn');
+  if(startBtn) startBtn.addEventListener('click', ()=>{
+    // small delay for splash animation (medium ~4s total presented to user). We'll hide immediately when clicked.
+    startGameFromSplash();
+  });
+  // auto-hide splash after medium timeout (4s) if user doesn't click
+  setTimeout(()=>{ const splash = $('splash'); if(splash && splash.style.display !== 'none') startGameFromSplash(); }, 4000);
+});
+
